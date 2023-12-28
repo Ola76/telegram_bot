@@ -2,10 +2,10 @@ import os
 import datetime
 import random
 from dotenv import load_dotenv
-from typing import Final
+from typing import Final, List
 import logging  # Import the logging module
-from telegram import Update
-from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
+from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes, CallbackQueryHandler
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram import InlineQueryResultArticle, InputTextMessageContent
 from telegram.ext import CallbackContext
 
@@ -16,6 +16,10 @@ load_dotenv()
 TOKEN: Final = os.environ.get('TOKEN')
 BOT_USERNAME: Final = os.environ.get('BOT_USERNAME')
 
+# Check if the token is provided
+if TOKEN is None:
+    raise ValueError("Telegram token not found. Make sure to set it in the .env file.")
+
 # Set up basic logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
@@ -23,7 +27,7 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------HOME-------------------------------------------------------------------
 
 #handling the Home commands
-async def home_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+def home_command(update: Update, context: CallbackContext):
     bot_name = "WhizBot, Your Wizardly Assistant"
     home_text = (
         f"🌟 **Greetings, Adventurer! I am {bot_name}!** 🌟\n\n"
@@ -44,8 +48,11 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "/home - Welcome message and basic bot instructions.\n"
         "/help - Shows this help message detailing command usage.\n"
         "/custom - Sends a custom message.\n"
-        "/game - Fetches and displays the latest news.\n"
-        "/list - Displays your shopping list. You can tick off items.\n"
+        "/game - Initiates a number-guessing game.\n"
+        "/list - Manages your shopping list. You can add, view, and mark items as completed.\n"
+        "  - Use /additem [item] to add an item to the list.\n"
+        "  - Use /list to view your current shopping list.\n"
+        "  - Use /tickoff [item] to mark an item as completed.\n"
         "/dataset - Allows you to upload a CSV dataset.\n\n"
         "Feel free to explore and use these commands!"
     )
@@ -109,9 +116,9 @@ def handle_response(text: str) -> str:
         return "Thank you for your polite request! How may I assist you? 😊"
 
     unrecognized_response = [
-        "Oops! It seems like I didn't catch that. Could you please rephrase your question?",
-        "I'm sorry, I didn't quite get that. Could you try asking in a different way?",
-        "My circuits might be a bit tangled! Can you help me understand your question better?",
+        "Oops! It looks like I missed that. Could you kindly rephrase your question?",
+        "I apologize; I didn't fully grasp that. Could you try phrasing it differently?",
+        "My circuits might be a bit confused! Can you provide more details for better understanding?"
     ]
     return random.choice(unrecognized_response)
 
@@ -150,26 +157,97 @@ def guess_command(update: Update, context: CallbackContext):
         update.message.reply_text("Please provide a number as your guess. Example: /guess 50")
         return
 
-    # Retrieve the secret number from the user's context
+    # Retrieve the secret number and remaining attempts from the user's context
     secret_number = context.user_data.get('secret_number')
+    remaining_attempts = context.user_data.get('max_attempts')
 
-    if secret_number is None:
+    if secret_number is None or remaining_attempts is None:
         update.message.reply_text("Oops! Something went wrong. Let's start the game again with /game.")
         return
 
     if user_guess == secret_number:
         update.message.reply_text("Congratulations! You guessed the correct number. 🎉")
-        # Clear the secret number from the user's context
+        # Clear the secret number and remaining attempts from the user's context
         del context.user_data['secret_number']
-    elif user_guess < secret_number:
-        update.message.reply_text("Too low! Try a higher number.")
+        del context.user_data['max_attempts']
+    elif remaining_attempts > 1:
+        # Decrement the remaining attempts
+        context.user_data['max_attempts'] -= 1
+        if user_guess < secret_number:
+            update.message.reply_text("Too low! Try a higher number. You have one more attempt.")
+        else:
+            update.message.reply_text("Too high! Try a lower number. You have one more attempt.")
     else:
-        update.message.reply_text("Too high! Try a lower number.")
+        update.message.reply_text("Sorry, you've run out of attempts. The correct number was {secret_number}. Try again with /game.")
+        # Clear the secret number and remaining attempts from the user's context
+        del context.user_data['secret_number']
+        del context.user_data['max_attempts']
 
 # ----------------------------------------------------------------LIST FEATURE-------------------------------------------------------------------
 
-def shopping_list_command(update: Update, context: CallbackContext):
-    update.message.reply_text("Here's your shopping list. You can tick off items.")
+# Reusable function to get the shopping list from user_data
+def get_shopping_list(context: CallbackContext) -> List[str]:
+    return context.user_data.setdefault('shopping_list', [])
+
+# Add a handler for the /viewlist command
+def view_list_command(update: Update, context: CallbackContext):
+    shopping_list = get_shopping_list(context)
+
+    if not shopping_list:
+        update.message.reply_text("Your shopping list is empty. Start adding items with /additem.")
+    else:
+        list_text = "Your shopping list:\n" + "\n".join([f" - {item}" for item in shopping_list])
+        update.message.reply_text(list_text)
+        update.message.reply_text("Tap on the buttons below to manage your list:",
+                                reply_markup=create_shopping_list_buttons())
+
+# Add a handler for the /additem command
+def add_item_command(update: Update, context: CallbackContext):
+    item = " ".join(context.args)
+
+    if not item:
+        update.message.reply_text("Please provide an item to add to the shopping list. Example: /additem eggs")
+    else:
+        shopping_list = get_shopping_list(context)
+        shopping_list.append(item)
+
+        update.message.reply_text(f"Added '{item}' to your shopping list. View your list with /viewlist.",
+                                reply_markup=create_shopping_list_buttons())
+
+# Improve user feedback
+def tick_off_command(update: Update, context: CallbackContext):
+    item = " ".join(context.args)
+
+    if not item:
+        update.message.reply_text("Please provide an item to mark as completed. Example: /tickoff eggs")
+    else:
+        shopping_list = get_shopping_list(context)
+
+        if item in shopping_list:
+            shopping_list.remove(item)
+            remaining_items = len(shopping_list)
+            update.message.reply_text(f"Marked '{item}' as completed. {remaining_items} items remaining. View your updated list with /list.",
+                                    reply_markup=create_shopping_list_buttons())
+        else:
+            update.message.reply_text(f"Item '{item}' not found in your shopping list.")
+
+# Add emojis to inline keyboard buttons
+def create_shopping_list_buttons():
+    buttons = [
+        [InlineKeyboardButton("➕ Add Item", callback_data="additem")],
+        [InlineKeyboardButton("✔️ Mark Completed", callback_data="markcompleted")]
+    ]
+    return InlineKeyboardMarkup(buttons)
+
+# Handler for button clicks
+def button_click_handler(update: Update, context: CallbackContext):
+    query = update.callback_query
+    query.answer()
+
+    if query.data == "additem":
+        update.message.reply_text("Use /additem [item] to add an item to the shopping list. Example: /additem eggs")
+    elif query.data == "markcompleted":
+        update.message.reply_text("Use /tickoff [item] to mark an item as completed. Example: /tickoff eggs")
     
 # --------------------------------------------------------------------DATASET FEATURE--------------------------------------------------------------------
 
@@ -178,7 +256,7 @@ def dataset_command(update: Update, context: CallbackContext):
 
 # ----------------------------------------------------------------------MESSAGE HANDLER--------------------------------------------------------------------
     
-# Comment
+# Handle messages
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     message_type: str = update.message.chat.type
     text: str = update.message.text
@@ -208,7 +286,7 @@ if __name__ == '__main__':
     # Register handlers
     app.add_handler(CommandHandler('help', help_command))
     app.add_handler(CommandHandler('home', home_command))
-    app.add_handler(CommandHandler('list', shopping_list_command))  # Updated to use '/list' instead of '/shoppinglist'
+    app.add_handler(CommandHandler('list', view_list_command))  # Using '/list' instead of '/shoppinglist'
     app.add_handler(CommandHandler('custom', custom_command))
     app.add_handler(CommandHandler('dataset', dataset_command))
     app.add_handler(MessageHandler(filters.TEXT, handle_message))
