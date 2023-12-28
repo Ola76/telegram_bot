@@ -2,14 +2,12 @@ import os
 import datetime
 import random
 from dotenv import load_dotenv
-import requests
 from typing import Final
 import logging  # Import the logging module
-from telegram import constants
 from telegram import Update
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
-from telegram.ext import InlineQueryHandler
 from telegram import InlineQueryResultArticle, InputTextMessageContent
+from telegram.ext import CallbackContext
 
 # Load environment variables from .env file
 load_dotenv()
@@ -17,26 +15,24 @@ load_dotenv()
 # Securely fetch your tokens and keys from the environment variable
 TOKEN: Final = os.environ.get('TOKEN')
 BOT_USERNAME: Final = os.environ.get('BOT_USERNAME')
-GNEWS_API_KEY: Final = os.environ.get('GNEWS_API_KEY')
-WEATHER_API_KEY: Final = os.getenv('WEATHER_API_KEY')
-# NEWS_API_KEY: Final = os.environ.get('NEWS_API_KEY')
 
 # Set up basic logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-# ---------------------------------------------------START-------------------------------------------------------------------
+# ---------------------------------------------------HOME-------------------------------------------------------------------
 
-#handling the different commands
-async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    start_text = (
-        "🌟 **Hallo! I am Southsider News Bot!** 🌟\n\n"
-        "I'm here to keep you informed with the latest news. "
-        "Type /help to see all available commands and get started. "
-        "Feel free to use /news to fetch headlines or search for news inline!\n\n"
-        "Happy reading! 📰😊"
+#handling the Home commands
+async def home_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    bot_name = "WhizBot, Your Wizardly Assistant"
+    home_text = (
+        f"🌟 **Greetings, Adventurer! I am {bot_name}!** 🌟\n\n"
+        f"Embark on a magical journey with me, your wizardly assistant. "
+        f"Type /help to discover the enchanted commands and let the magic unfold. "
+        f"Whether you seek knowledge or simply wish to chat, I'm here for you!\n\n"
+        f"Cast a spell with {bot_name}! 🧙✨"
     )
-    await update.message.reply_text(start_text)
+    update.message.reply_text(home_text)
 
 # --------------------------------------------------------HELP-------------------------------------------------------------------
 
@@ -45,21 +41,15 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     help_text = (
         "🌟 **Welcome to the News Bot!** 🌟\n\n"
         "Here are some commands to get you started:\n\n"
-        "/start - Welcome message and basic bot instructions.\n"
+        "/home - Welcome message and basic bot instructions.\n"
         "/help - Shows this help message detailing command usage.\n"
         "/custom - Sends a custom message.\n"
-        "/news - Fetches and displays the latest news.\n\n"
-        "🗂️ **News Categories:**\n"
-        "/news business - Latest business news\n"
-        "/news entertainment - Entertainment updates\n"
-        "/news health - Health-related news\n"
-        "/news science - Scientific discoveries\n"
-        "/news sports - Sports highlights\n"
-        "/news technology - Tech news\n\n"
-        "🔍 **Inline News Search:**\n"
-        "Type '@bot_username query' to search for news inline."
+        "/game - Fetches and displays the latest news.\n"
+        "/list - Displays your shopping list. You can tick off items.\n"
+        "/dataset - Allows you to upload a CSV dataset.\n\n"
+        "Feel free to explore and use these commands!"
     )
-    await update.message.reply_text(help_text)
+    update.message.reply_text(help_text)
 
 # ----------------------------------------------------------CUSTOM----------------------------------------------------------------
 
@@ -77,7 +67,7 @@ async def custom_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 # Handles response 
 def handle_response(text: str) -> str:
-    processed: str = text.lower()
+    processed = text.lower()
 
     # Time-based greeting
     current_time = datetime.datetime.now().time()
@@ -92,50 +82,32 @@ def handle_response(text: str) -> str:
         return f'{greeting}! How can I assist you today? 😊'
 
     if 'how are you' in processed:
-        return 'I am good, thank you for asking! How may I help you today? 😊'
+        return "I'm just a bot, but I'm doing well! How can I help you?"
 
     if 'who are you' in processed:
-        return 'I am Southsider, your friendly news bot.'
+        return "I am your friendly bot here to assist you with various tasks!"
 
-    # Dynamic Fun Responses
-    fun_responses = [
-        "I'm feeling fantastic today!",
-        "Exploring the latest news with a touch of excitement!",
-        "Get ready for a news adventure! 🌍🚀",
-        "Breaking news: It's a great day!",
-        "Unveiling the day's top stories with a smile! 😃📰",
-    ]
-
-    trigger_keywords = ['fun', 'news', 'gossip']
-
-    if any(keyword in processed for keyword in trigger_keywords):
-        return random.choice(fun_responses)
-
-    # Thank you response
     if 'thank you' in processed:
-        return 'You\'re welcome! If you have more questions, feel free to ask.'
-    
-    # Example user assistance including /help command
+        return "You're welcome! If you have more requests, feel free to ask."
+
     if 'help' in processed or 'need assistance' in processed:
-        return 'Of course! I\'m here to /help. What do you need assistance with? You can ask about news, specific topics, or use commands like /weather or /custom.'
+        return "Certainly! I'm here to help. What do you need assistance with? You can ask about the game, your shopping list, or use commands like /custom or /dataset."
 
-    # Handling common questions
     if 'what can you do' in processed:
-        return 'I can fetch the latest news for you. Try the /news command!'
-    
-    # Example educational response
-    if 'how do you work' in processed:
-        return 'I analyze your questions and fetch relevant news articles. Feel free to ask anything!'
-    
-    # Example user engagement
-    if 'recommend' in processed:
-        return 'Certainly! What type of news are you interested in? Technology, sports, or something else?'
+        return "I can play a game with you, manage your shopping list, and more! Feel free to explore the commands."
 
-    # Politeness check
+    if 'how do you work' in processed:
+        return "I work by responding to specific commands. You can try commands like /game, /shoppinglist, or /custom to see what I can do."
+
+    if 'recommend' in processed:
+        return "Sure! What are you looking for a recommendation on? A game, a product, or something else?"
+
+    if 'game' in processed:
+        return f'{greeting}! Let\'s have a chat about the game. What aspect of the game would you like to discuss? Strategy, rules, or maybe a challenge?'
+
     if any(keyword in processed for keyword in ['please', 'kindly']):
-        return 'Thank you for your polite request! How may I assist you? 😊'
-    
-    # Improved Unrecognized Input Response
+        return "Thank you for your polite request! How may I assist you? 😊"
+
     unrecognized_response = [
         "Oops! It seems like I didn't catch that. Could you please rephrase your question?",
         "I'm sorry, I didn't quite get that. Could you try asking in a different way?",
@@ -143,117 +115,66 @@ def handle_response(text: str) -> str:
     ]
     return random.choice(unrecognized_response)
 
-# ----------------------------------------------------------------NEWS FEATURE-------------------------------------------------------------------
+# ----------------------------------------------------------------GAME FEATURE-------------------------------------------------------------------
 
-# Fetching News from web
-async def news_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = ' '.join(context.args) if context.args else 'latest'
-    # tells chat that the bot is fetching the news
-    await update.message.reply_text("Fetching the latest news, please wait...") 
-    news = fetch_news(query)  # Ensure the query is used in fetching news
-    await update.message.reply_text(f"Latest News:\n\n{news}")
+# Guess the number game one-run
+def game_command(update: Update, context: CallbackContext):
+    difficulty_text = (
+        "Let's play a game! Choose a difficulty level:\n"
+        "/game easy - Guess a number between 1 and 50 (easy)\n"
+        "/game medium - Guess a number between 1 and 100 (medium)\n"
+        "/game hard - Guess a number between 1 and 200 (hard)"
+    )
+    update.message.reply_text(difficulty_text)
 
+def start_game(update: Update, context: CallbackContext, difficulty: str, max_range: int):
+    # Generate a random number based on the difficulty level
+    secret_number = random.randint(1, max_range)
 
-    # Simple parsing to separate query and category (if provided)
-    # if args:
-    #     query = args[0]
-    #     if len(args) > 1:
-    #         category = args[1]
+    # Store the secret number and the maximum attempts in the user's context for later reference
+    context.user_data['secret_number'] = secret_number
+    context.user_data['max_attempts'] = 5  # You can adjust the number of attempts as needed
 
-    # query = ' '.join(context.args) if context.args else 'latest'
-    # tells chat that the bot is fetching the news
-    # await update.message.reply_text("Fetching the latest news, please wait...") 
-    # news = fetch_news(category, query)  # Ensure the query is used in fetching news
-    # await update.message.reply_text(f"Latest News:\n\n{news}")
+    game_text = (
+        f"Great choice! I'm thinking of a number between 1 and {max_range}. "
+        "Try to guess the correct number by using the /guess command followed by your guess. "
+        f"For example, type /guess 50 to guess the number 50."
+    )
+    update.message.reply_text(game_text)
 
-async def inline_query(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.inline_query.query
-    results = [
-        InlineQueryResultArticle(
-            id=query,
-            title="Latest News",
-            input_message_content=InputTextMessageContent(fetch_news(query))
-        )
-    ]
-    await update.inline_query.answer(results)
+# Add a handler for the /guess command
+def guess_command(update: Update, context: CallbackContext):
+    user_guess = int(context.args[0]) if context.args and context.args[0] else None
 
-    # A function to get the news 
-def fetch_news(query='latest'):
-    try:
-        # if category.lower() == 'categories':
-        #     # Provide a list of available news categories
-        #     return "Available news categories: business, entertainment, health, science, sports, technology"
-
-        # if category.lower() not in ['general', 'business', 'entertainment', 'health', 'science', 'sports', 'technology']:
-        #     return "Invalid category. Type /news categories to see available categories."
-        url = f"https://gnews.io/api/v4/top-headlines?token={GNEWS_API_KEY}&lang=en&q={query}"
-        response = requests.get(url)
-
-
-        if response.status_code == 200:
-            print("iuoioi")
-            data = response.json()
-            articles = data.get('articles', [])
-
-            news_messages = []
-            for article in articles[:5]:  # Limit to the top 5 articles
-                title = article.get('title', 'No title')
-                url = article.get('url', '#')
-                news_messages.append(f"{title} - {url}")
-
-            return "\n\n".join(news_messages)
-        else:
-            logger.error(f"Failed to retrieve news. Status Code: {response.status_code}")
-            return "Failed to retrieve news."
-    
-    except requests.RequestException as e:
-        logger.error(f"An error occurred: {e}")
-        return "Failed to retrieve news due to an error."
-    
-# --------------------------------------------------------------------WEATHER FEATURE--------------------------------------------------------------------
-
-# Modify the function to fetch weather
-async def weather_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    city = ' '.join(context.args)  # Extract city from command arguments
-    if not city:
-        await update.message.reply_text("Please specify a city. Example: /weather London")
+    if user_guess is None:
+        update.message.reply_text("Please provide a number as your guess. Example: /guess 50")
         return
 
-    # Fetch weather data using the API
-    weather_data = fetch_weather(city)
+    # Retrieve the secret number from the user's context
+    secret_number = context.user_data.get('secret_number')
 
-    # Send the weather information as a reply
-    await update.message.reply_text(weather_data, parse_mode=constants.ParseMode.MARKDOWN)
+    if secret_number is None:
+        update.message.reply_text("Oops! Something went wrong. Let's start the game again with /game.")
+        return
 
-def fetch_weather(city):
-    try:
-        url = f'https://api.weatherapi.com/v1/current.json?key={WEATHER_API_KEY}&q={city}&aqi=no'
-        response = requests.get(url)
+    if user_guess == secret_number:
+        update.message.reply_text("Congratulations! You guessed the correct number. 🎉")
+        # Clear the secret number from the user's context
+        del context.user_data['secret_number']
+    elif user_guess < secret_number:
+        update.message.reply_text("Too low! Try a higher number.")
+    else:
+        update.message.reply_text("Too high! Try a lower number.")
 
-        if response.status_code == 200:
-            data = response.json()
-            # Extract relevant weather information from the response
-            temperature = data['current']['temp_c']
-            weather_description = data['current']['condition']['text']
-            localtime = data['location']['localtime']
-            
-            # Construct the complete URL for the weather icon
-            weather_icon_url = f"https:{data['current']['condition']['icon']}"
+# ----------------------------------------------------------------LIST FEATURE-------------------------------------------------------------------
 
-            # Build the reply text with Markdown
-            reply_text = (
-                f"Current weather in {city}: {weather_description}, Temperature: {temperature}°C\n"
-                f"[Weather Icon]({weather_icon_url})\n"
-                f"Local Time: {localtime}"
-            )
+def shopping_list_command(update: Update, context: CallbackContext):
+    update.message.reply_text("Here's your shopping list. You can tick off items.")
+    
+# --------------------------------------------------------------------DATASET FEATURE--------------------------------------------------------------------
 
-            return reply_text
-        else:
-            return f"Failed to retrieve weather information. Error: {response.text}"
-
-    except requests.RequestException as e:
-        return f"Failed to retrieve weather information due to an error: {e}"
-
+def dataset_command(update: Update, context: CallbackContext):
+    update.message.reply_text("Please upload a CSV dataset.")
 
 # ----------------------------------------------------------------------MESSAGE HANDLER--------------------------------------------------------------------
     
@@ -285,13 +206,17 @@ if __name__ == '__main__':
     app = Application.builder().token(TOKEN).build()
 
     # Register handlers
-    app.add_handler(CommandHandler('start', start_command))
     app.add_handler(CommandHandler('help', help_command))
+    app.add_handler(CommandHandler('home', home_command))
+    app.add_handler(CommandHandler('list', shopping_list_command))  # Updated to use '/list' instead of '/shoppinglist'
     app.add_handler(CommandHandler('custom', custom_command))
-    app.add_handler(CommandHandler('news', news_command))
-    app.add_handler(CommandHandler('weather', weather_command))
+    app.add_handler(CommandHandler('dataset', dataset_command))
     app.add_handler(MessageHandler(filters.TEXT, handle_message))
-    app.add_handler(InlineQueryHandler(inline_query))
+    # Add a handler for the /game command with difficulty levels
+    app.add_handler(CommandHandler('game', game_command))
+    app.add_handler(CommandHandler('easy', lambda update, context: start_game(update, context, 'easy', 50)))
+    app.add_handler(CommandHandler('medium', lambda update, context: start_game(update, context, 'medium', 100)))
+    app.add_handler(CommandHandler('hard', lambda update, context: start_game(update, context, 'hard', 200)))
     app.add_error_handler(error)
 
     logger.info('Bot is polling...')
