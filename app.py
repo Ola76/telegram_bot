@@ -6,7 +6,6 @@ from typing import Final, List
 import logging  # Import the logging module
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes, CallbackQueryHandler
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
-from telegram import InlineQueryResultArticle, InputTextMessageContent
 from telegram.ext import CallbackContext
 
 # Load environment variables from .env file
@@ -27,7 +26,7 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------HOME-------------------------------------------------------------------
 
 #handling the Home commands
-def home_command(update: Update, context: CallbackContext):
+async def home_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     bot_name = "WhizBot, Your Wizardly Assistant"
     home_text = (
         f"🌟 **Greetings, Adventurer! I am {bot_name}!** 🌟\n\n"
@@ -36,7 +35,7 @@ def home_command(update: Update, context: CallbackContext):
         f"Whether you seek knowledge or simply wish to chat, I'm here for you!\n\n"
         f"Cast a spell with {bot_name}! 🧙✨"
     )
-    update.message.reply_text(home_text)
+    await update.message.reply_text(home_text)
 
 # --------------------------------------------------------HELP-------------------------------------------------------------------
 
@@ -56,7 +55,7 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "/dataset - Allows you to upload a CSV dataset.\n\n"
         "Feel free to explore and use these commands!"
     )
-    update.message.reply_text(help_text)
+    await update.message.reply_text(help_text)
 
 # ----------------------------------------------------------CUSTOM----------------------------------------------------------------
 
@@ -109,9 +108,6 @@ def handle_response(text: str) -> str:
     if 'recommend' in processed:
         return "Sure! What are you looking for a recommendation on? A game, a product, or something else?"
 
-    if 'game' in processed:
-        return f'{greeting}! Let\'s have a chat about the game. What aspect of the game would you like to discuss? Strategy, rules, or maybe a challenge?'
-
     if any(keyword in processed for keyword in ['please', 'kindly']):
         return "Thank you for your polite request! How may I assist you? 😊"
 
@@ -125,63 +121,15 @@ def handle_response(text: str) -> str:
 # ----------------------------------------------------------------GAME FEATURE-------------------------------------------------------------------
 
 # Guess the number game one-run
-def game_command(update: Update, context: CallbackContext):
+async def game_command(update: Update, context: CallbackContext):
+    logger.info("Game command triggered.")
     difficulty_text = (
         "Let's play a game! Choose a difficulty level:\n"
         "/game easy - Guess a number between 1 and 50 (easy)\n"
         "/game medium - Guess a number between 1 and 100 (medium)\n"
         "/game hard - Guess a number between 1 and 200 (hard)"
     )
-    update.message.reply_text(difficulty_text)
-
-def start_game(update: Update, context: CallbackContext, difficulty: str, max_range: int):
-    # Generate a random number based on the difficulty level
-    secret_number = random.randint(1, max_range)
-
-    # Store the secret number and the maximum attempts in the user's context for later reference
-    context.user_data['secret_number'] = secret_number
-    context.user_data['max_attempts'] = 5  # You can adjust the number of attempts as needed
-
-    game_text = (
-        f"Great choice! I'm thinking of a number between 1 and {max_range}. "
-        "Try to guess the correct number by using the /guess command followed by your guess. "
-        f"For example, type /guess 50 to guess the number 50."
-    )
-    update.message.reply_text(game_text)
-
-# Add a handler for the /guess command
-def guess_command(update: Update, context: CallbackContext):
-    user_guess = int(context.args[0]) if context.args and context.args[0] else None
-
-    if user_guess is None:
-        update.message.reply_text("Please provide a number as your guess. Example: /guess 50")
-        return
-
-    # Retrieve the secret number and remaining attempts from the user's context
-    secret_number = context.user_data.get('secret_number')
-    remaining_attempts = context.user_data.get('max_attempts')
-
-    if secret_number is None or remaining_attempts is None:
-        update.message.reply_text("Oops! Something went wrong. Let's start the game again with /game.")
-        return
-
-    if user_guess == secret_number:
-        update.message.reply_text("Congratulations! You guessed the correct number. 🎉")
-        # Clear the secret number and remaining attempts from the user's context
-        del context.user_data['secret_number']
-        del context.user_data['max_attempts']
-    elif remaining_attempts > 1:
-        # Decrement the remaining attempts
-        context.user_data['max_attempts'] -= 1
-        if user_guess < secret_number:
-            update.message.reply_text("Too low! Try a higher number. You have one more attempt.")
-        else:
-            update.message.reply_text("Too high! Try a lower number. You have one more attempt.")
-    else:
-        update.message.reply_text("Sorry, you've run out of attempts. The correct number was {secret_number}. Try again with /game.")
-        # Clear the secret number and remaining attempts from the user's context
-        del context.user_data['secret_number']
-        del context.user_data['max_attempts']
+    await update.message.reply_text(difficulty_text) 
 
 # ----------------------------------------------------------------LIST FEATURE-------------------------------------------------------------------
 
@@ -292,9 +240,6 @@ if __name__ == '__main__':
     app.add_handler(MessageHandler(filters.TEXT, handle_message))
     # Add a handler for the /game command with difficulty levels
     app.add_handler(CommandHandler('game', game_command))
-    app.add_handler(CommandHandler('easy', lambda update, context: start_game(update, context, 'easy', 50)))
-    app.add_handler(CommandHandler('medium', lambda update, context: start_game(update, context, 'medium', 100)))
-    app.add_handler(CommandHandler('hard', lambda update, context: start_game(update, context, 'hard', 200)))
     app.add_error_handler(error)
 
     logger.info('Bot is polling...')
