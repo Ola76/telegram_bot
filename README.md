@@ -1,13 +1,13 @@
-# Telegram News Bot
+# Whiz Bot
 
-The Telegram News Bot delivers the latest headlines to your Telegram chat seamlessly.
+Whiz Bot Bot is a versatile Telegram bot designed to make your Telegram experience more enjoyable and interactive.
 
 ## Features
 
-- **Top Headlines:** Use `/news` to get the latest news instantly.
-- **Current Weather:** Use `/weather [city]` to fetch and display the current weather conditions for the specified city.
-- **Command Variety:** Includes `/start`, `/help`, `/custom`, and natural language interaction.
-- **Inline Queries:** Start a message with the bot's username for quick news results.
+- **Game Time:** Challenge yourself with a number-guessing game. Choose your difficulty level and try to guess the correct number.
+- **Shopping List:** Create and manage your shopping list. Tick off items as you shop.
+- **Custom Messages:** Send and receive custom messages. Express yourself in a fun and unique way.
+- **Dataset Upload:** Upload a CSV dataset for processing and analysis.
 
 ## Usage
 
@@ -21,18 +21,30 @@ The Telegram News Bot delivers the latest headlines to your Telegram chat seamle
   /help
   ```
 
-- **Fetch Weather report:**
+- **Play the Number-Guessing Game:**
+  - Choose difficulty:
+    ```
+    /game
+    ```
+  - Make a guess:
+    ```
+    /guess [number]
+    ```
+
+- **Manage Your Shopping List:**
   ```
-  /weather [city]
+  /list
   ```
 
-- **Fetch Latest News:**
+- **Send a Custom Message:**
   ```
-  /news [query]
+  /custom
   ```
 
-- **Inline Queries:**
-  Start a message with the bot's username and a query.
+- **Upload a Dataset:**
+  ```
+  /dataset
+  ```
 
 ## Contributing
 
