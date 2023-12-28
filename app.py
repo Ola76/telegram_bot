@@ -235,6 +235,7 @@ def fetch_weather(city):
             # Extract relevant weather information from the response
             temperature = data['current']['temp_c']
             weather_description = data['current']['condition']['text']
+            localtime = data['location']['localtime']
             
             # Construct the complete URL for the weather icon
             weather_icon_url = f"https:{data['current']['condition']['icon']}"
@@ -242,7 +243,8 @@ def fetch_weather(city):
             # Build the reply text with Markdown
             reply_text = (
                 f"Current weather in {city}: {weather_description}, Temperature: {temperature}°C\n"
-                f"[Weather Icon]({weather_icon_url})"
+                f"[Weather Icon]({weather_icon_url})\n"
+                f"Local Time: {localtime}"
             )
 
             return reply_text
@@ -251,6 +253,7 @@ def fetch_weather(city):
 
     except requests.RequestException as e:
         return f"Failed to retrieve weather information due to an error: {e}"
+
 
 # ----------------------------------------------------------------------MESSAGE HANDLER--------------------------------------------------------------------
     
