@@ -13,7 +13,7 @@ Whiz Bot Bot is a versatile Telegram bot designed to make your Telegram experien
 
 - **Start the Bot:**
   ```
-  /start
+  /home
   ```
 
 - **Get Help:**
