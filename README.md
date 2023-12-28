@@ -6,7 +6,7 @@ Whiz Bot Bot is a versatile Telegram bot designed to make your Telegram experien
 
 - **Game Time:** Challenge yourself with a number-guessing game. Choose your difficulty level and try to guess the correct number.
 - **Shopping List:** Create and manage your shopping list. Tick off items as you shop.
-- **Custom Messages:** Send and receive custom messages. Express yourself in a fun and unique way.
+- **Custom Messages:** Under construction.
 - **Dataset Upload:** Upload a CSV dataset for processing and analysis.
 
 ## Usage
