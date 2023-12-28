@@ -211,6 +211,8 @@ def fetch_news(query='latest'):
     
 # --------------------------------------------------------------------WEATHER FEATURE--------------------------------------------------------------------
 
+from telegram import constants
+
 # Modify the function to fetch weather
 async def weather_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     city = ' '.join(context.args)  # Extract city from command arguments
@@ -222,12 +224,11 @@ async def weather_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     weather_data = fetch_weather(city)
 
     # Send the weather information as a reply
-    await update.message.reply_text(weather_data)
+    await update.message.reply_text(weather_data, parse_mode=constants.ParseMode.MARKDOWN)
 
-# Fetching the weather report
 def fetch_weather(city):
     try:
-        url = f'http://api.weatherapi.com/v1/current.json?key={WEATHER_API_KEY}&q={city}&aqi=no'
+        url = f'https://api.weatherapi.com/v1/current.json?key={WEATHER_API_KEY}&q={city}&aqi=no'
         response = requests.get(url)
 
         if response.status_code == 200:
@@ -235,8 +236,17 @@ def fetch_weather(city):
             # Extract relevant weather information from the response
             temperature = data['current']['temp_c']
             weather_description = data['current']['condition']['text']
+            
+            # Construct the complete URL for the weather icon
+            weather_icon_url = f"https:{data['current']['condition']['icon']}"
 
-            return f"Current weather in {city}: {weather_description}, Temperature: {temperature}°C"
+            # Build the reply text with Markdown
+            reply_text = (
+                f"Current weather in {city}: {weather_description}, Temperature: {temperature}°C\n"
+                f"[Weather Icon]({weather_icon_url})"
+            )
+
+            return reply_text
         else:
             return f"Failed to retrieve weather information. Error: {response.text}"
 
