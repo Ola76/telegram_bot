@@ -5,6 +5,7 @@ from dotenv import load_dotenv
 import requests
 from typing import Final
 import logging  # Import the logging module
+from telegram import constants
 from telegram import Update
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
 from telegram.ext import InlineQueryHandler
@@ -210,8 +211,6 @@ def fetch_news(query='latest'):
         return "Failed to retrieve news due to an error."
     
 # --------------------------------------------------------------------WEATHER FEATURE--------------------------------------------------------------------
-
-from telegram import constants
 
 # Modify the function to fetch weather
 async def weather_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
